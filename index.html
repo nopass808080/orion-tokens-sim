@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Orion Tokens Simulator v1.1</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@2.1.0"></script>
+    <style>
+        .platinum { background-color: #E5E4E2; color: #333; }
+        .gold { background-color: #FFD700; color: #333; }
+        .silver { background-color: #C0C0C0; color: #333; }
+        .bronze { background-color: #CD7F32; color: #fff; }
+        .none { background-color: #4b5563; color: #fff; }
+        .text-platinum { color: #E5E4E2; }
+        .text-gold { color: #FFD700; }
+        .text-silver { color: #C0C0C0; }
+        .text-bronze { color: #CD7F32; }
+    </style>
+</head>
+<body class="bg-gray-900 text-gray-100 min-h-screen p-4 pb-10 font-sans">
+
+    <div class="max-w-md mx-auto bg-gray-800 rounded-xl shadow-2xl overflow-hidden p-6 border border-gray-700">
+        <h1 class="text-2xl font-bold text-center mb-6 text-orange-400 tracking-tight">Orion Tokens Simulator</h1>
+
+        <div class="mb-6 p-4 bg-orange-500/10 border border-orange-500/30 rounded-lg">
+            <label class="block text-xs font-bold text-orange-300 uppercase mb-2 tracking-widest">Current Tokens</label>
+            <input type="number" id="input-current-tokens" 
+                   class="w-full bg-gray-900 border border-gray-600 rounded-lg py-2 px-4 text-2xl font-mono font-bold text-orange-400 focus:outline-none focus:border-orange-500 transition" 
+                   value="0" min="0" oninput="update()">
+            <div class="mt-3 space-y-2">
+                <p class="text-[10px] text-gray-400 italic leading-relaxed">
+                    * Enter the total tokens currently shown in your scanner.
+                </p>
+                <div class="p-2 bg-black/20 rounded border border-orange-500/20">
+                    <p class="text-[10px] text-orange-300/90 leading-relaxed">
+                        <span class="font-bold underline uppercase">Daily Bounty:</span> If you already claimed today's 80 tokens, ensure they are included in the value above.
+                    </p>
+                    <p class="text-[10px] text-gray-400 mt-1 leading-relaxed">
+                        <span class="font-bold underline uppercase">Auto-Sync:</span> Past events (even if checked) are excluded from the forecast to prevent double-counting.
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-gray-900/50 p-4 rounded-lg mb-4 text-center border border-gray-700">
+            <p class="text-xs text-gray-400 uppercase tracking-widest mb-1">Predicted Final Tokens</p>
+            <div id="total-tokens" class="text-5xl font-black mb-3 text-white">0</div>
+            <div id="medal-rank" class="inline-block px-6 py-1 rounded-full font-bold shadow-sm transition-all duration-500 uppercase">-</div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-2 mb-6 text-center">
+            <div class="bg-gray-700/20 p-2 rounded border border-gray-700 flex flex-col justify-center min-h-[85px]">
+                <p class="text-[9px] uppercase font-black tracking-tighter text-platinum mb-1">Platinum (25,000)</p>
+                <p id="date-platinum" class="text-sm font-bold my-1">-</p>
+                <p id="rem-platinum" class="text-[10px] font-mono"></p>
+            </div>
+            <div class="bg-gray-700/20 p-2 rounded border border-gray-700 flex flex-col justify-center min-h-[85px]">
+                <p class="text-[9px] uppercase font-black tracking-tighter text-gold mb-1">Gold (15,000)</p>
+                <p id="date-gold" class="text-sm font-bold my-1">-</p>
+                <p id="rem-gold" class="text-[10px] font-mono"></p>
+            </div>
+            <div class="bg-gray-700/20 p-2 rounded border border-gray-700 flex flex-col justify-center min-h-[85px]">
+                <p class="text-[9px] uppercase font-black tracking-tighter text-silver mb-1">Silver (8,000)</p>
+                <p id="date-silver" class="text-sm font-bold my-1">-</p>
+                <p id="rem-silver" class="text-[10px] font-mono"></p>
+            </div>
+            <div class="bg-gray-700/20 p-2 rounded border border-gray-700 flex flex-col justify-center min-h-[85px]">
+                <p class="text-[9px] uppercase font-black tracking-tighter text-bronze mb-1">Bronze (5,000)</p>
+                <p id="date-bronze" class="text-sm font-bold my-1">-</p>
+                <p id="rem-bronze" class="text-[10px] font-mono"></p>
+            </div>
+        </div>
+
+        <div class="mb-8 h-64 bg-gray-900/30 rounded-lg p-2">
+            <canvas id="tokenChart"></canvas>
+        </div>
+
+        <div class="mb-8">
+            <h2 class="text-xs font-black mb-3 text-orange-400 flex items-center uppercase tracking-widest">
+                <span class="w-2 h-2 bg-orange-500 rounded-full mr-2"></span> On-site Events
+            </h2>
+            <div id="onsite-events" class="space-y-2"></div>
+        </div>
+        <div>
+            <h2 class="text-xs font-black mb-3 text-blue-400 flex items-center uppercase tracking-widest">
+                <span class="w-2 h-2 bg-blue-500 rounded-full mr-2"></span> Global Operations
+            </h2>
+            <div id="global-events" class="space-y-1"></div>
+        </div>
+    </div>
+
+    <script>
+        const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+        const STORAGE_KEY = 'orion_simulator_v3.5_prefs';
+        const START_DATE_STR = "2026-04-01";
+        const END_DATE_STR = "2026-06-30";
+        const TODAY_STR = new Date().toISOString().split('T')[0];
+        let chart = null;
+        const selectedOnsite = new Set();
+
+        const globalEvents = [
+            { date: "2026-04-30", tokens: 2500, name: "Sakura Blossom Festival", period: "Apr 4 – Apr 30" },
+            { date: "2026-05-11", tokens: 5000, name: "Orion Global Operation", period: "Apr 24 – May 11" },
+            { date: "2026-05-10", tokens: 2500, name: "Global Campaign (Early May)", period: "Mid-May (Est. May 10)" },
+            { date: "2026-05-30", tokens: 2500, name: "Global Campaign (Late May)", period: "Late-May (Est. May 30)" },
+            { date: "2026-06-20", tokens: 2500, name: "Summer Solstice 2026", period: "Mid-June (Est. June 20)" }
+        ];
+
+        const onsiteEvents = [
+            { id: 'fs4', name: "First Saturday: April", tokens: 2500, date: "2026-04-04" },
+            { id: 'fs5', name: "First Saturday: May", tokens: 2500, date: "2026-05-02" },
+            { id: 'ae1', name: "Anomaly: Sydney / Prague", tokens: 5000, date: "2026-05-16" },
+            { id: 'ae2', name: "Anomaly: Kure / Jersey City", tokens: 5000, date: "2026-05-30" },
+            { id: 'fs6', name: "First Saturday: June", tokens: 2500, date: "2026-06-06" },
+            { id: 'ae3', name: "Anomaly: Geneva / Lima", tokens: 5000, date: "2026-06-13" }
+        ];
+
+        const MEDALS = [
+            { id: 'platinum', threshold: 25000, color: "#E5E4E2", class: "platinum", textClass: "text-platinum" },
+            { id: 'gold', threshold: 15000, color: "#FFD700", class: "gold", textClass: "text-gold" },
+            { id: 'silver', threshold: 8000, color: "#C0C0C0", class: "silver", textClass: "text-silver" },
+            { id: 'bronze', threshold: 5000, color: "#CD7F32", class: "bronze", textClass: "text-bronze" }
+        ];
+
+        function formatDate(dateStr) {
+            const d = new Date(dateStr);
+            return `${d.getDate()} ${monthNames[d.getMonth()]}`;
+        }
+
+        function init() {
+            // Cleanup old storage keys
+            Object.keys(localStorage).forEach(key => {
+                if (key.startsWith('orion_simulator_') && key !== STORAGE_KEY) {
+                    localStorage.removeItem(key);
+                }
+            });
+
+            const saved = localStorage.getItem(STORAGE_KEY);
+            if (saved) {
+                const data = JSON.parse(saved);
+                if (data.selected) data.selected.forEach(id => selectedOnsite.add(id));
+                if (data.currentTokens) document.getElementById('input-current-tokens').value = data.currentTokens;
+            }
+
+            const onsiteContainer = document.getElementById('onsite-events');
+            onsiteEvents.sort((a,b) => new Date(a.date) - new Date(b.date)).forEach((ev) => {
+                const isPast = ev.date < TODAY_STR;
+                const label = document.createElement('label');
+                label.className = `flex items-center justify-between p-3 border rounded-lg transition cursor-pointer active:scale-95 ${isPast ? 'bg-gray-800/40 border-gray-700 opacity-60 cursor-default' : 'bg-gray-700/50 border-gray-600'}`;
+                label.innerHTML = `
+                    <div class="flex flex-col">
+                        <span class="text-sm font-bold ${isPast ? 'text-gray-500' : 'text-gray-100'}">${ev.name}</span>
+                        <span class="text-[10px] text-gray-500 font-medium">${formatDate(ev.date)} ${isPast ? '(Counted in Current)' : ''}</span>
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <span class="text-sm font-mono ${isPast ? 'text-gray-600' : 'text-orange-400'} font-bold">+${ev.tokens.toLocaleString()}</span>
+                        <input type="checkbox" class="w-5 h-5 accent-orange-500" onchange="toggleEvent('${ev.id}')" ${selectedOnsite.has(ev.id)?'checked':''} ${isPast ? 'disabled' : ''}>
+                    </div>`;
+                onsiteContainer.appendChild(label);
+            });
+
+            const globalContainer = document.getElementById('global-events');
+            globalContainer.innerHTML = `<div class="flex justify-between items-center p-2 border-b border-gray-700/50"><div class="flex flex-col"><span class="text-[11px] font-bold text-gray-200">Daily Bounties</span><span class="text-[9px] text-gray-400 font-medium">Apr 7 – Jun 30</span></div><span class="font-mono text-[11px] text-blue-300 font-bold">+80/day</span></div>`;
+            globalEvents.sort((a,b) => new Date(a.date) - new Date(b.date)).forEach(ev => {
+                const isPast = ev.date < TODAY_STR;
+                const div = document.createElement('div');
+                div.className = `flex justify-between items-center p-2 border-b border-gray-700/50 ${isPast ? 'opacity-40' : ''}`;
+                div.innerHTML = `<div class="flex flex-col"><span class="text-[11px] font-bold text-gray-200">${ev.name}</span><span class="text-[9px] text-gray-400 font-medium">${ev.period} ${isPast ? '(Ended)' : ''}</span></div><span class="font-mono text-[11px] ${isPast ? 'text-gray-500' : 'text-blue-300'} font-bold">+${ev.tokens.toLocaleString()}</span>`;
+                globalContainer.appendChild(div);
+            });
+            update();
+        }
+
+        function toggleEvent(id) {
+            if (selectedOnsite.has(id)) selectedOnsite.delete(id); else selectedOnsite.add(id);
+            update();
+        }
+
+        function update() {
+            const currentTokens = parseInt(document.getElementById('input-current-tokens').value) || 0;
+            localStorage.setItem(STORAGE_KEY, JSON.stringify({selected: [...selectedOnsite], currentTokens: currentTokens}));
+            
+            let running = currentTokens;
+            const timeline = [];
+            const achievementDates = { platinum: '-', gold: '-', silver: '-', bronze: '-' };
+
+            let iter = new Date(START_DATE_STR);
+            const dailyStart = new Date("2026-04-07");
+            const endDate = new Date(END_DATE_STR);
+
+            while(iter <= endDate) {
+                const dateStr = iter.toISOString().split('T')[0];
+                
+                if (dateStr >= TODAY_STR) {
+                    if (iter >= dailyStart) running += 80;
+                    globalEvents.filter(e => e.date === dateStr).forEach(e => running += e.tokens);
+                    const oe = onsiteEvents.find(e => e.date === dateStr);
+                    if (oe && selectedOnsite.has(oe.id)) running += oe.tokens;
+                }
+                
+                timeline.push({ x: dateStr, y: running });
+                MEDALS.forEach(m => { 
+                    if (achievementDates[m.id] === '-' && running >= m.threshold) {
+                        achievementDates[m.id] = (dateStr <= TODAY_STR) ? "Achieved" : formatDate(dateStr);
+                    }
+                });
+                iter.setDate(iter.getDate() + 1);
+            }
+
+            document.getElementById('total-tokens').innerText = running.toLocaleString();
+            const currentMedal = MEDALS.find(m => running >= m.threshold) || { name: "NONE", class: "none" };
+            const rankEl = document.getElementById('medal-rank');
+            rankEl.innerText = currentMedal.class; 
+            rankEl.className = "inline-block px-6 py-1 rounded-full font-bold shadow-sm " + currentMedal.class;
+
+            MEDALS.forEach(m => {
+                const dateEl = document.getElementById(`date-${m.id}`);
+                const remEl = document.getElementById(`rem-${m.id}`);
+                if (achievementDates[m.id] !== '-') {
+                    dateEl.innerText = achievementDates[m.id];
+                    dateEl.className = `text-sm font-bold ${m.textClass} drop-shadow-sm`;
+                    remEl.innerText = "Target Met";
+                    remEl.className = `text-[10px] font-bold ${m.textClass} mt-1 opacity-90`;
+                } else {
+                    dateEl.innerText = "-";
+                    dateEl.className = "text-sm font-bold text-gray-600";
+                    remEl.innerText = `Rem: ${(m.threshold - running).toLocaleString()}`;
+                    remEl.className = `text-[10px] font-mono mt-1 font-bold ${m.textClass} opacity-70`;
+                }
+            });
+            renderChart(timeline, running);
+        }
+
+        function renderChart(timeline, max) {
+            const ctx = document.getElementById('tokenChart').getContext('2d');
+            if (chart) chart.destroy();
+
+            const annotations = MEDALS.map(m => ({ 
+                type: 'line', yMin: m.threshold, yMax: m.threshold, borderColor: m.color, borderWidth: 1, borderDash: [5, 5], 
+                label: { display: true, content: m.id.charAt(0).toUpperCase(), position: 'start', backgroundColor: m.color, color: '#333', font: { size: 10, weight: 'bold' } } 
+            }));
+
+            if (TODAY_STR >= START_DATE_STR && TODAY_STR <= END_DATE_STR) {
+                annotations.push({ 
+                    type: 'line', xMin: TODAY_STR, xMax: TODAY_STR, borderColor: '#ef4444', borderWidth: 2, 
+                    label: { display: true, content: 'Today', backgroundColor: '#ef4444', color: '#fff', font: { size: 9 }, position: 'end' } 
+                });
+            }
+
+            chart = new Chart(ctx, {
+                type: 'line',
+                data: { datasets: [{ label: 'Tokens', data: timeline, borderColor: '#fb923c', backgroundColor: 'rgba(251, 146, 60, 0.1)', fill: true, tension: 0.1, pointRadius: 0 }] },
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    scales: {
+                        y: { beginAtZero: true, max: Math.max(30000, Math.ceil((max + 2000) / 5000) * 5000), grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#666', font: { size: 10 } } },
+                        x: { 
+                            type: 'category', 
+                            ticks: { 
+                                callback: function(val, index) { 
+                                    if (!timeline[index]) return '';
+                                    const d = new Date(timeline[index].x).getDate(); 
+                                    return (d === 1 || d === 15) ? formatDate(timeline[index].x) : ''; 
+                                }, 
+                                color: '#9ca3af', font: { size: 9 } 
+                            }, 
+                            grid: { display: false } 
+                        }
+                    },
+                    plugins: { 
+                        legend: { display: false }, 
+                        annotation: { annotations: annotations } 
+                    }
+                }
+            });
+        }
+        document.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+</html>
