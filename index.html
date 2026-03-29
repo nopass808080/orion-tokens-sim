@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Orion Tokens Simulator v1.3</title>
+    <title>Orion Tokens Simulator v1.4</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@2.1.0"></script>
@@ -101,11 +101,11 @@
         const selectedOnsite = new Set();
 
         const globalEvents = [
-            { date: "2026-04-30", tokens: 2500, name: "Sakura Blossom Festival", period: "Apr 4 – Apr 30" },
-            { date: "2026-05-11", tokens: 5000, name: "Orion Global Operation", period: "Apr 24 – May 11" },
-            { date: "2026-05-10", tokens: 2500, name: "Global Campaign (Early May)", period: "Early-May (Est. May 10)" },
-            { date: "2026-05-30", tokens: 2500, name: "Global Campaign (Late May)", period: "Late-May (Est. May 30)" },
-            { date: "2026-06-20", tokens: 2500, name: "Summer Solstice 2026", period: "Mid-June (Est. June 20)" }
+            { date: "2026-04-30", tokens: 2500, name: "Sakura Blossom Festival", period: "4 Apr – 30 Apr" },
+            { date: "2026-05-11", tokens: 5000, name: "Orion Global Operation", period: "24 Apr – 11 May" },
+            { date: "2026-05-10", tokens: 2500, name: "Global Campaign (Early May)", period: "Early-May (Est. 10 May)" },
+            { date: "2026-05-30", tokens: 2500, name: "Global Campaign (Late May)", period: "Late-May (Est. 30 May)" },
+            { date: "2026-06-20", tokens: 2500, name: "Summer Solstice 2026", period: "Mid-June (Est. 20 Jun)" }
         ];
 
         const onsiteEvents = [
@@ -126,11 +126,11 @@
 
         function formatDate(dateStr) {
             const d = new Date(dateStr);
+            // 4 Apr の形式に変更
             return `${d.getDate()} ${monthNames[d.getMonth()]}`;
         }
 
         function init() {
-            // Cleanup old storage keys
             Object.keys(localStorage).forEach(key => {
                 if (key.startsWith('orion_simulator_') && key !== STORAGE_KEY) {
                     localStorage.removeItem(key);
@@ -162,7 +162,7 @@
             });
 
             const globalContainer = document.getElementById('global-events');
-            globalContainer.innerHTML = `<div class="flex justify-between items-center p-2 border-b border-gray-700/50"><div class="flex flex-col"><span class="text-[11px] font-bold text-gray-200">Daily Bounties</span><span class="text-[9px] text-gray-400 font-medium">Apr 7 – Jun 30</span></div><span class="font-mono text-[11px] text-blue-300 font-bold">+80/day</span></div>`;
+            globalContainer.innerHTML = `<div class="flex justify-between items-center p-2 border-b border-gray-700/50"><div class="flex flex-col"><span class="text-[11px] font-bold text-gray-200">Daily Bounties</span><span class="text-[9px] text-gray-400 font-medium">7 Apr – 30 Jun</span></div><span class="font-mono text-[11px] text-blue-300 font-bold">+80/day</span></div>`;
             globalEvents.sort((a,b) => new Date(a.date) - new Date(b.date)).forEach(ev => {
                 const isPast = ev.date < TODAY_STR;
                 const div = document.createElement('div');
