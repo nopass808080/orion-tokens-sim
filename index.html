@@ -151,11 +151,11 @@
                 label.className = `flex items-center justify-between p-3 border rounded-lg transition cursor-pointer active:scale-95 ${isPast ? 'bg-gray-800/40 border-gray-700 opacity-60 cursor-default' : 'bg-gray-700/50 border-gray-600'}`;
                 label.innerHTML = `
                     <div class="flex flex-col">
-                        <span class="text-sm font-bold ${isPast ? 'text-gray-500' : 'text-gray-100'}">${ev.name}</span>
-                        <span class="text-[10px] text-gray-500 font-medium">${formatDate(ev.date)} ${isPast ? '(Counted in Current)' : ''}</span>
+                        <span class="text-sm font-bold ${isPast ? 'text-gray-400' : 'text-gray-100'}">${ev.name}</span>
+                        <span class="text-[10px] text-gray-400 font-medium">${formatDate(ev.date)} ${isPast ? '(Counted in Current)' : ''}</span>
                     </div>
                     <div class="flex items-center gap-3">
-                        <span class="text-sm font-mono ${isPast ? 'text-gray-600' : 'text-orange-400'} font-bold">+${ev.tokens.toLocaleString()}</span>
+                        <span class="text-sm font-mono ${isPast ? 'text-gray-500' : 'text-orange-400'} font-bold">+${ev.tokens.toLocaleString()}</span>
                         <input type="checkbox" class="w-5 h-5 accent-orange-500" onchange="toggleEvent('${ev.id}')" ${selectedOnsite.has(ev.id)?'checked':''} ${isPast ? 'disabled' : ''}>
                     </div>`;
                 onsiteContainer.appendChild(label);
@@ -167,7 +167,7 @@
                 const isPast = ev.date < TODAY_STR;
                 const div = document.createElement('div');
                 div.className = `flex justify-between items-center p-2 border-b border-gray-700/50 ${isPast ? 'opacity-40' : ''}`;
-                div.innerHTML = `<div class="flex flex-col"><span class="text-[11px] font-bold text-gray-200">${ev.name}</span><span class="text-[9px] text-gray-400 font-medium">${ev.period} ${isPast ? '(Ended)' : ''}</span></div><span class="font-mono text-[11px] ${isPast ? 'text-gray-500' : 'text-blue-300'} font-bold">+${ev.tokens.toLocaleString()}</span>`;
+                div.innerHTML = `<div class="flex flex-col"><span class="text-[11px] font-bold text-gray-200">${ev.name}</span><span class="text-[9px] text-gray-400 font-medium">${ev.period} ${isPast ? '(Ended)' : ''}</span></div><span class="font-mono text-[11px] ${isPast ? 'text-gray-400' : 'text-blue-300'} font-bold">+${ev.tokens.toLocaleString()}</span>`;
                 globalContainer.appendChild(div);
             });
             update();
@@ -225,7 +225,7 @@
                     remEl.className = `text-[10px] font-bold ${m.textClass} mt-1 opacity-90`;
                 } else {
                     dateEl.innerText = "-";
-                    dateEl.className = "text-sm font-bold text-gray-600";
+                    dateEl.className = "text-sm font-bold text-gray-500";
                     remEl.innerText = `Rem: ${(m.threshold - running).toLocaleString()}`;
                     remEl.className = `text-[10px] font-mono mt-1 font-bold ${m.textClass} opacity-70`;
                 }
