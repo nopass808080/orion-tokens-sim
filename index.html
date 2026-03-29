@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Orion Tokens Simulator v1.4</title>
+    <title>Orion Tokens Simulator v1.5</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@2.1.0"></script>
@@ -85,7 +85,7 @@
         </div>
         <div>
             <h2 class="text-xs font-black mb-3 text-blue-400 flex items-center uppercase tracking-widest">
-                <span class="w-2 h-2 bg-blue-500 rounded-full mr-2"></span> Global Operations
+                <span class="w-2 h-2 bg-blue-500 rounded-full mr-2"></span> Global Events
             </h2>
             <div id="global-events" class="space-y-1"></div>
         </div>
@@ -255,7 +255,7 @@
                 options: {
                     responsive: true, maintainAspectRatio: false,
                     scales: {
-                        y: { beginAtZero: true, max: Math.max(30000, Math.ceil((max + 2000) / 5000) * 5000), grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#666', font: { size: 10 } } },
+                        y: { beginAtZero: true, max: Math.max(30000, Math.ceil((max + 2000) / 5000) * 5000), grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#9ca3af', font: { size: 10 } } },
                         x: { 
                             type: 'category', 
                             ticks: { 
