@@ -3,26 +3,26 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Orion Tokens Simulator v1.7.5</title>
+    <title>Orion Tokens Simulator v1.7.6</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@2.1.0"></script>
     <style>
-        .platinum { background-color: #E5E4E2; color: #333; }
-        .gold { background-color: #FFD700; color: #333; }
-        .silver { background-color: #C0C0C0; color: #333; }
-        .bronze { background-color: #CD7F32; color: #fff; }
+        .platinum { background-color: #e5e4e2; color: #333; }
+        .gold { background-color: #ffd700; color: #333; }
+        .silver { background-color: #c0c0c0; color: #333; }
+        .bronze { background-color: #cd7f32; color: #fff; }
         .none { background-color: #4b5563; color: #fff; }
-        .text-platinum { color: #E5E4E2; }
-        .text-gold { color: #FFD700; }
-        .text-silver { color: #C0C0C0; }
-        .text-bronze { color: #CD7F32; }
+        .text-platinum { color: #e5e4e2; }
+        .text-gold { color: #ffd700; }
+        .text-silver { color: #c0c0c0; }
+        .text-bronze { color: #cd7f32; }
     </style>
 </head>
 <body class="bg-gray-900 text-gray-100 min-h-screen p-4 pb-10 font-sans">
 
     <div class="max-w-md mx-auto bg-gray-800 rounded-xl shadow-2xl overflow-hidden p-6 border border-gray-700">
-        <h1 class="text-2xl font-bold text-center mb-6 text-orange-400 tracking-tight">Orion Token Simulator</h1>
+        <h1 class="text-2xl font-bold text-center mb-6 text-orange-400 tracking-tight">Orion Tokens Simulator</h1>
 
         <div class="mb-6 p-4 bg-orange-500/10 border border-orange-500/30 rounded-lg">
             <label class="block text-xs font-bold text-orange-300 uppercase mb-2 tracking-widest">Current Tokens</label>
@@ -97,7 +97,6 @@
         const STORAGE_KEY = 'orion_simulator_v3.6_prefs';
         const START_DATE_STR = "2026-04-01";
         const END_DATE_STR = "2026-06-30";
-        // デバッグ時はここを書き換えてテスト可能
         let TODAY_STR = new Date().toISOString().split('T')[0];
         
         let chart = null;
@@ -243,11 +242,11 @@
                         const rewardDate = new Date(eventDate.getTime() + (oe.delay || 0) * 86400000);
                         const rewardDateStr = rewardDate.toISOString().split('T')[0];
 
-                        // A: ループの初回（今日）において、過去に開催されたが未付与（Pending）のものを即座に加算
+                        // A: At the first iteration (Today), immediately add tokens for past events that have not been delivered yet (Pending).
                         if (isFirstIteration && rewardDateStr >= TODAY_STR && oe.date < TODAY_STR) {
                             running += oe.tokens;
                         }
-                        // B: 未来の付与タイミングで加算
+                        // B: Add tokens at the future delivery timing.
                         else if (rewardDateStr === dateStr && oe.date >= TODAY_STR) {
                             running += oe.tokens;
                         }
