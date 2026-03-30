@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Orion Tokens Simulator v1.7.7</title>
+    <title>Orion Tokens Simulator v1.7.8</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@2.1.0"></script>
@@ -312,20 +312,18 @@
                         y: { beginAtZero: true, max: Math.max(30000, Math.ceil((max + 2000) / 5000) * 5000), grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#9ca3af', font: { size: 10, weight: 'bold' } } },
                         x: { 
                             type: 'category', 
-                            ticks: { 
-                                // Disable auto-skipping to ensure specific dates are shown even on small screens
-                                autoSkip: false,
-                                // Prevent labels from rotating to save space and maintain consistency
-                                maxRotation: 0,
-                                minRotation: 0,
-                                callback: function(val, index) { 
-                                    if (!timeline[index]) return '';
-                                    const d = new Date(timeline[index].x).getDate(); 
-                                    // Display labels for the 1st, 15th, and 30th of each month
-                                    return (d === 1 || d === 15 || d === 30) ? formatDate(timeline[index].x) : ''; 
-                                }, 
-                                color: '#9ca3af', font: { size: 9 } 
-                            }, 
+                            ticks: {
+                                maxTicksLimit: 6,
+                                maxRotation: 45,
+                                minRotation: 45,
+                                callback: function(val, index) {
+                                    if (!timeline[index]) return null;
+                                    const d = new Date(timeline[index].x).getDate();
+                                    return (d === 1 || d === 15) ? formatDate(timeline[index].x) : null;
+                                },
+                                color: '#9ca3af',
+                                font: { size: 10 }
+                            },
                             grid: { display: false } 
                         }
                     },
