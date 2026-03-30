@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Orion Tokens Simulator v1.6.1</title>
+    <title>Orion Token Simulator v1.7.5</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@2.1.0"></script>
@@ -22,7 +22,7 @@
 <body class="bg-gray-900 text-gray-100 min-h-screen p-4 pb-10 font-sans">
 
     <div class="max-w-md mx-auto bg-gray-800 rounded-xl shadow-2xl overflow-hidden p-6 border border-gray-700">
-        <h1 class="text-2xl font-bold text-center mb-6 text-orange-400 tracking-tight">Orion Tokens Simulator</h1>
+        <h1 class="text-2xl font-bold text-center mb-6 text-orange-400 tracking-tight">Orion Token Simulator</h1>
 
         <div class="mb-6 p-4 bg-orange-500/10 border border-orange-500/30 rounded-lg">
             <label class="block text-xs font-bold text-orange-300 uppercase mb-2 tracking-widest">Current Tokens</label>
@@ -38,7 +38,7 @@
                         <span class="font-bold underline uppercase">Daily Bounty:</span> If you already claimed today's 80 tokens, ensure they are included in the value above.
                     </p>
                     <p class="text-[10px] text-gray-400 mt-1 leading-relaxed">
-                        <span class="font-bold underline uppercase">Auto-Sync:</span> Past events (even if checked) are excluded from the forecast to prevent double-counting.
+                        <span class="font-bold underline uppercase">Auto-Sync:</span> Past events are only counted once rewards are delivered. Until then, checked events stay in your forecast.
                     </p>
                 </div>
             </div>
@@ -83,6 +83,7 @@
             </h2>
             <div id="onsite-events" class="space-y-2"></div>
         </div>
+
         <div>
             <h2 class="text-xs font-black mb-3 text-blue-400 flex items-center uppercase tracking-widest">
                 <span class="w-2 h-2 bg-blue-500 rounded-full mr-2"></span> Global Events
@@ -93,10 +94,12 @@
 
     <script>
         const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-        const STORAGE_KEY = 'orion_simulator_v3.5_prefs';
+        const STORAGE_KEY = 'orion_simulator_v3.6_prefs';
         const START_DATE_STR = "2026-04-01";
         const END_DATE_STR = "2026-06-30";
-        const TODAY_STR = new Date().toISOString().split('T')[0];
+        // デバッグ時はここを書き換えてテスト可能
+        let TODAY_STR = new Date().toISOString().split('T')[0];
+        
         let chart = null;
         const selectedOnsite = new Set();
 
@@ -109,12 +112,12 @@
         ];
 
         const onsiteEvents = [
-            { id: 'fs4', name: "First Saturday: Apr", tokens: 2500, date: "2026-04-04" },
-            { id: 'fs5', name: "First Saturday: May", tokens: 2500, date: "2026-05-02" },
-            { id: 'ae1', name: "Anomaly Day1: Sydney / Prague", tokens: 5000, date: "2026-05-16" },
-            { id: 'ae2', name: "Anomaly Day2: Kure / Jersey City", tokens: 5000, date: "2026-05-30" },
-            { id: 'fs6', name: "First Saturday: Jun", tokens: 2500, date: "2026-06-06" },
-            { id: 'ae3', name: "Anomaly Day3: Geneva / Lima", tokens: 5000, date: "2026-06-13" }
+            { id: 'fs4', name: "First Saturday: Apr", tokens: 2500, date: "2026-04-04", delay: 10 },
+            { id: 'fs5', name: "First Saturday: May", tokens: 2500, date: "2026-05-02", delay: 10 },
+            { id: 'ae1', name: "Anomaly Day1: Sydney / Prague", tokens: 5000, date: "2026-05-16", delay: 0 },
+            { id: 'ae2', name: "Anomaly Day2: Kure / Jersey City", tokens: 5000, date: "2026-05-30", delay: 0 },
+            { id: 'fs6', name: "First Saturday: Jun", tokens: 2500, date: "2026-06-06", delay: 10 },
+            { id: 'ae3', name: "Anomaly Day3: Geneva / Lima", tokens: 5000, date: "2026-06-13", delay: 0 }
         ];
 
         const MEDALS = [
@@ -126,15 +129,13 @@
 
         function formatDate(dateStr) {
             const d = new Date(dateStr);
-            // 4 Apr の形式に変更
             return `${d.getDate()} ${monthNames[d.getMonth()]}`;
         }
 
         function init() {
+            // Cleanup old storage
             Object.keys(localStorage).forEach(key => {
-                if (key.startsWith('orion_simulator_') && key !== STORAGE_KEY) {
-                    localStorage.removeItem(key);
-                }
+                if (key.startsWith('orion_simulator_') && key !== STORAGE_KEY) localStorage.removeItem(key);
             });
 
             const saved = localStorage.getItem(STORAGE_KEY);
@@ -144,25 +145,46 @@
                 if (data.currentTokens) document.getElementById('input-current-tokens').value = data.currentTokens;
             }
 
-            const onsiteContainer = document.getElementById('onsite-events');
+            renderOnsiteEvents();
+            renderGlobalEvents();
+            update();
+        }
+
+        function renderOnsiteEvents() {
+            const container = document.getElementById('onsite-events');
+            container.innerHTML = '';
             onsiteEvents.sort((a,b) => new Date(a.date) - new Date(b.date)).forEach((ev) => {
-                const isPast = ev.date < TODAY_STR;
+                const eventDate = new Date(ev.date);
+                const rewardDate = new Date(eventDate.getTime() + (ev.delay || 0) * 86400000);
+                const rewardDateStr = rewardDate.toISOString().split('T')[0];
+
+                const isPastEvent = ev.date < TODAY_STR;
+                const isRewarded = rewardDateStr < TODAY_STR;
+                const isPending = isPastEvent && !isRewarded;
+
                 const label = document.createElement('label');
-                label.className = `flex items-center justify-between p-3 border rounded-lg transition cursor-pointer active:scale-95 ${isPast ? 'bg-gray-800/40 border-gray-700 opacity-60 cursor-default' : 'bg-gray-700/50 border-gray-600'}`;
+                label.className = `flex items-center justify-between p-3 border rounded-lg transition cursor-pointer active:scale-95 ${isRewarded ? 'bg-gray-800/40 border-gray-700 opacity-60 cursor-default' : 'bg-gray-700/50 border-gray-600'}`;
+                
+                let dateDisplay = formatDate(ev.date);
+                if (isPending) dateDisplay += ` <span class="text-orange-400 font-bold ml-1">[Pending Reward]</span>`;
+                if (isRewarded) dateDisplay += ` <span class="text-gray-500 ml-1">(Counted in Current)</span>`;
+
                 label.innerHTML = `
                     <div class="flex flex-col">
-                        <span class="text-sm font-bold ${isPast ? 'text-gray-400' : 'text-gray-100'}">${ev.name}</span>
-                        <span class="text-[10px] text-gray-400 font-medium">${formatDate(ev.date)} ${isPast ? '(Counted in Current)' : ''}</span>
+                        <span class="text-sm font-bold ${isRewarded ? 'text-gray-400' : 'text-gray-100'}">${ev.name}</span>
+                        <span class="text-[10px] text-gray-400 font-medium">${dateDisplay}</span>
                     </div>
                     <div class="flex items-center gap-3">
-                        <span class="text-sm font-mono ${isPast ? 'text-gray-500' : 'text-orange-400'} font-bold">+${ev.tokens.toLocaleString()}</span>
-                        <input type="checkbox" class="w-5 h-5 accent-orange-500" onchange="toggleEvent('${ev.id}')" ${selectedOnsite.has(ev.id)?'checked':''} ${isPast ? 'disabled' : ''}>
+                        <span class="text-sm font-mono ${isRewarded ? 'text-gray-500' : 'text-orange-400'} font-bold">+${ev.tokens.toLocaleString()}</span>
+                        <input type="checkbox" class="w-5 h-5 accent-orange-500" onchange="toggleEvent('${ev.id}')" ${selectedOnsite.has(ev.id)?'checked':''} ${isRewarded ? 'disabled' : ''}>
                     </div>`;
-                onsiteContainer.appendChild(label);
+                container.appendChild(label);
             });
+        }
 
-            const globalContainer = document.getElementById('global-events');
-            globalContainer.innerHTML = `
+        function renderGlobalEvents() {
+            const container = document.getElementById('global-events');
+            container.innerHTML = `
                 <div class="flex justify-between items-center p-3 border-b border-gray-700/50">
                     <div class="flex flex-col">
                         <span class="text-sm font-bold text-gray-200">Daily Bounties</span>
@@ -170,6 +192,7 @@
                     </div>
                     <span class="font-mono text-sm text-blue-300 font-bold">+80/day</span>
                 </div>`;
+
             globalEvents.sort((a,b) => new Date(a.date) - new Date(b.date)).forEach(ev => {
                 const isPast = ev.date < TODAY_STR;
                 const div = document.createElement('div');
@@ -180,9 +203,8 @@
                         <span class="text-[10px] text-gray-400 font-medium">${ev.period} ${isPast ? '(Ended)' : ''}</span>
                     </div>
                     <span class="font-mono text-sm ${isPast ? 'text-gray-400' : 'text-blue-300'} font-bold">+${ev.tokens.toLocaleString()}</span>`;
-                globalContainer.appendChild(div);
+                container.appendChild(div);
             });
-            update();
         }
 
         function toggleEvent(id) {
@@ -204,12 +226,32 @@
 
             while(iter <= endDate) {
                 const dateStr = iter.toISOString().split('T')[0];
+                const isFirstIteration = (dateStr === TODAY_STR);
                 
                 if (dateStr >= TODAY_STR) {
+                    // 1. Daily Bounties
                     if (iter >= dailyStart) running += 80;
+                    
+                    // 2. Global Events
                     globalEvents.filter(e => e.date === dateStr).forEach(e => running += e.tokens);
-                    const oe = onsiteEvents.find(e => e.date === dateStr);
-                    if (oe && selectedOnsite.has(oe.id)) running += oe.tokens;
+                    
+                    // 3. On-site Events (Pending logic included)
+                    onsiteEvents.forEach(oe => {
+                        if (!selectedOnsite.has(oe.id)) return;
+
+                        const eventDate = new Date(oe.date);
+                        const rewardDate = new Date(eventDate.getTime() + (oe.delay || 0) * 86400000);
+                        const rewardDateStr = rewardDate.toISOString().split('T')[0];
+
+                        // A: ループの初回（今日）において、過去に開催されたが未付与（Pending）のものを即座に加算
+                        if (isFirstIteration && rewardDateStr >= TODAY_STR && oe.date < TODAY_STR) {
+                            running += oe.tokens;
+                        }
+                        // B: 未来の付与タイミングで加算
+                        else if (rewardDateStr === dateStr && oe.date >= TODAY_STR) {
+                            running += oe.tokens;
+                        }
+                    });
                 }
                 
                 timeline.push({ x: dateStr, y: running });
@@ -221,6 +263,7 @@
                 iter.setDate(iter.getDate() + 1);
             }
 
+            // UI Update
             document.getElementById('total-tokens').innerText = running.toLocaleString();
             const currentMedal = MEDALS.find(m => running >= m.threshold) || { name: "NONE", class: "none" };
             const rankEl = document.getElementById('medal-rank');
@@ -267,7 +310,7 @@
                 options: {
                     responsive: true, maintainAspectRatio: false,
                     scales: {
-                        y: { beginAtZero: true, max: Math.max(30000, Math.ceil((max + 2000) / 5000) * 5000), grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#9ca3af', font: { size: 10 } } },
+                        y: { beginAtZero: true, max: Math.max(30000, Math.ceil((max + 2000) / 5000) * 5000), grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#9ca3af', font: { size: 10, weight: 'bold' } } },
                         x: { 
                             type: 'category', 
                             ticks: { 
