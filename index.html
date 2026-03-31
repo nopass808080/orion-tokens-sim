@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Orion Tokens Simulator v1.7.9</title>
+    <title>Orion Tokens Simulator v1.8.0</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@2.1.0"></script>
@@ -275,8 +275,15 @@
                 if (achievementDates[m.id] !== '-') {
                     dateEl.innerText = achievementDates[m.id];
                     dateEl.className = `text-sm font-bold ${m.textClass} drop-shadow-sm`;
-                    remEl.innerText = "Target Met";
-                    remEl.className = `text-[10px] font-bold ${m.textClass} mt-1 opacity-90`;
+                    
+                    if (m.id === 'platinum') {
+                        const skipDays = Math.floor((running - 25000) / 80);
+                        remEl.innerText = `Daily Bounty Buffer: ${skipDays} days`;
+                        remEl.className = `text-[9px] font-bold ${m.textClass} mt-1 opacity-90`;
+                    } else {
+                        remEl.innerText = "Target Met";
+                        remEl.className = `text-[10px] font-bold ${m.textClass} mt-1 opacity-90`;
+                    }
                 } else {
                     dateEl.innerText = "-";
                     dateEl.className = "text-sm font-bold text-gray-500";
