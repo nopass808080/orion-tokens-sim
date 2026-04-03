@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Orion Tokens Simulator v1.9.0</title>
+    <title>Orion Tokens Simulator v1.9.7</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@2.1.0"></script>
@@ -17,6 +17,8 @@
         .text-gold { color: #ffd700; }
         .text-silver { color: #c0c0c0; }
         .text-bronze { color: #cd7f32; }
+        /* Season Point Event Highlight */
+        .season-border { border-left: 4px solid #28f428 !important; }
     </style>
 </head>
 <body class="bg-gray-900 text-gray-100 min-h-screen p-4 pb-10 font-sans">
@@ -88,7 +90,7 @@
             <h2 class="text-xs font-black mb-3 text-blue-400 flex items-center uppercase tracking-widest">
                 <span class="w-2 h-2 bg-blue-500 rounded-full mr-2"></span> Global Events
             </h2>
-            <div id="global-events" class="space-y-1"></div>
+            <div id="global-events" class="space-y-2"></div>
         </div>
     </div>
 
@@ -98,25 +100,25 @@
         const START_DATE_STR = "2026-04-01";
         const END_DATE_STR = "2026-06-30";
         let TODAY_STR = new Date().toISOString().split('T')[0];
-        
+
         let chart = null;
         const selectedOnsite = new Set();
 
         const globalEvents = [
             { date: "2026-04-30", tokens: 3000, name: "Sakura Blossom Festival", period: "4 Apr – 30 Apr" },
-            { date: "2026-05-11", tokens: 7500, name: "Orion Global Operation", period: "24 Apr – 11 May" },
+            { date: "2026-05-11", tokens: 7500, name: "Orion Global Operation", period: "24 Apr – 11 May", isSeason: true },
             { date: "2026-05-10", tokens: 3000, name: "Global Campaign (Early May)", period: "Early-May (Est. 10 May)" },
             { date: "2026-05-30", tokens: 3000, name: "Global Campaign (Late May)", period: "Late-May (Est. 30 May)" },
             { date: "2026-06-20", tokens: 3000, name: "Summer Solstice 2026", period: "Mid-Jun (Est. 20 Jun)" }
         ];
 
         const onsiteEvents = [
-            { id: 'fs4', name: "First Saturday: Apr", tokens: 2500, date: "2026-04-04", delay: 10 },
-            { id: 'fs5', name: "First Saturday: May", tokens: 2500, date: "2026-05-02", delay: 10 },
-            { id: 'ae1', name: "Anomaly Day1: Sydney / Prague", tokens: 5000, date: "2026-05-16", delay: 0 },
-            { id: 'ae2', name: "Anomaly Day2: Kure / Jersey City", tokens: 5000, date: "2026-05-30", delay: 0 },
-            { id: 'fs6', name: "First Saturday: Jun", tokens: 2500, date: "2026-06-06", delay: 10 },
-            { id: 'ae3', name: "Anomaly Day3: Geneva / Lima", tokens: 5000, date: "2026-06-13", delay: 0 }
+            { id: 'fs4', name: "First Saturday: Apr", tokens: 2500, date: "2026-04-04", delay: 10, isSeason: true },
+            { id: 'fs5', name: "First Saturday: May", tokens: 2500, date: "2026-05-02", delay: 10, isSeason: true },
+            { id: 'ae1', name: "Anomaly Day1: Sydney / Prague", tokens: 5000, date: "2026-05-16", delay: 0, isSeason: true },
+            { id: 'ae2', name: "Anomaly Day2: Kure / Jersey City", tokens: 5000, date: "2026-05-30", delay: 0, isSeason: true },
+            { id: 'fs6', name: "First Saturday: Jun", tokens: 2500, date: "2026-06-06", delay: 10, isSeason: true },
+            { id: 'ae3', name: "Anomaly Day3: Geneva / Lima", tokens: 5000, date: "2026-06-13", delay: 0, isSeason: true }
         ];
 
         const MEDALS = [
@@ -132,7 +134,6 @@
         }
 
         function init() {
-            // Cleanup old storage
             Object.keys(localStorage).forEach(key => {
                 if (key.startsWith('orion_simulator_') && key !== STORAGE_KEY) localStorage.removeItem(key);
             });
@@ -152,7 +153,7 @@
         function renderOnsiteEvents() {
             const container = document.getElementById('onsite-events');
             container.innerHTML = '';
-            onsiteEvents.sort((a,b) => new Date(a.date) - new Date(b.date)).forEach((ev) => {
+            onsiteEvents.sort((a, b) => new Date(a.date) - new Date(b.date)).forEach((ev) => {
                 const eventDate = new Date(ev.date);
                 const rewardDate = new Date(eventDate.getTime() + (ev.delay || 0) * 86400000);
                 const rewardDateStr = rewardDate.toISOString().split('T')[0];
@@ -161,9 +162,12 @@
                 const isRewarded = rewardDateStr < TODAY_STR;
                 const isPending = isPastEvent && !isRewarded;
 
+                // FIX 1: Season highlight only applies to non-rewarded events
+                const seasonClasses = (ev.isSeason && !isRewarded) ? 'season-border' : '';
+
                 const label = document.createElement('label');
-                label.className = `flex items-center justify-between p-3 border rounded-lg transition cursor-pointer active:scale-95 ${isRewarded ? 'bg-gray-800/40 border-gray-700 opacity-60 cursor-default' : 'bg-gray-700/50 border-gray-600'}`;
-                
+                label.className = `flex items-center justify-between p-3 border rounded-lg transition cursor-pointer active:scale-95 ${seasonClasses} ${isRewarded ? 'bg-gray-800/40 border-gray-700 opacity-60 cursor-default' : 'bg-gray-700/50 border-gray-600'}`;
+
                 let dateDisplay = formatDate(ev.date);
                 if (isPending) dateDisplay += ` <span class="text-orange-400 font-bold ml-1">[Pending Reward]</span>`;
                 if (isRewarded) dateDisplay += ` <span class="text-gray-500 ml-1">(Counted in Current)</span>`;
@@ -175,7 +179,7 @@
                     </div>
                     <div class="flex items-center gap-3">
                         <span class="text-sm font-mono ${isRewarded ? 'text-gray-500' : 'text-orange-400'} font-bold">+${ev.tokens.toLocaleString()}</span>
-                        <input type="checkbox" class="w-5 h-5 accent-orange-500" onchange="toggleEvent('${ev.id}')" ${selectedOnsite.has(ev.id)?'checked':''} ${isRewarded ? 'disabled' : ''}>
+                        <input type="checkbox" class="w-5 h-5 accent-orange-500" onchange="toggleEvent('${ev.id}')" ${selectedOnsite.has(ev.id) ? 'checked' : ''} ${isRewarded ? 'disabled' : ''}>
                     </div>`;
                 container.appendChild(label);
             });
@@ -183,19 +187,25 @@
 
         function renderGlobalEvents() {
             const container = document.getElementById('global-events');
-            container.innerHTML = `
-                <div class="flex justify-between items-center p-3 border-b border-gray-700/50">
-                    <div class="flex flex-col">
-                        <span class="text-sm font-bold text-gray-200">Daily Bounties</span>
-                        <span class="text-[10px] text-gray-400 font-medium">7 Apr – 30 Jun</span>
-                    </div>
-                    <span class="font-mono text-sm text-blue-300 font-bold">+80/day</span>
-                </div>`;
+            container.innerHTML = '';
 
-            globalEvents.sort((a,b) => new Date(a.date) - new Date(b.date)).forEach(ev => {
+            // FIX 2: Daily Bounties uses the same card style as other Global Events
+            const dailyDiv = document.createElement('div');
+            dailyDiv.className = 'flex justify-between items-center p-3 border rounded-lg bg-gray-700/50 border-gray-600';
+            dailyDiv.innerHTML = `
+                <div class="flex flex-col">
+                    <span class="text-sm font-bold text-gray-200">Daily Bounties</span>
+                    <span class="text-[10px] text-gray-400 font-medium">7 Apr – 30 Jun</span>
+                </div>
+                <span class="font-mono text-sm text-blue-300 font-bold">+80/day</span>`;
+            container.appendChild(dailyDiv);
+
+            globalEvents.sort((a, b) => new Date(a.date) - new Date(b.date)).forEach(ev => {
                 const isPast = ev.date < TODAY_STR;
+                const seasonClasses = (ev.isSeason && !isPast) ? 'season-border' : '';
+
                 const div = document.createElement('div');
-                div.className = `flex justify-between items-center p-3 border-b border-gray-700/50 ${isPast ? 'opacity-40' : ''}`;
+                div.className = `flex justify-between items-center p-3 border rounded-lg transition ${seasonClasses} ${isPast ? 'opacity-40 bg-gray-800/20 border-gray-700/30' : 'bg-gray-700/50 border-gray-600'}`;
                 div.innerHTML = `
                     <div class="flex flex-col">
                         <span class="text-sm font-bold text-gray-200">${ev.name}</span>
@@ -213,8 +223,8 @@
 
         function update() {
             const currentTokens = parseInt(document.getElementById('input-current-tokens').value) || 0;
-            localStorage.setItem(STORAGE_KEY, JSON.stringify({selected: [...selectedOnsite], currentTokens: currentTokens}));
-            
+            localStorage.setItem(STORAGE_KEY, JSON.stringify({ selected: [...selectedOnsite], currentTokens: currentTokens }));
+
             let running = currentTokens;
             const timeline = [];
             const achievementDates = { platinum: '-', gold: '-', silver: '-', bronze: '-' };
@@ -223,17 +233,17 @@
             const dailyStart = new Date("2026-04-07");
             const endDate = new Date(END_DATE_STR);
 
-            while(iter <= endDate) {
+            while (iter <= endDate) {
                 const dateStr = iter.toISOString().split('T')[0];
                 const isFirstIteration = (dateStr === TODAY_STR);
-                
+
                 if (dateStr >= TODAY_STR) {
                     // 1. Daily Bounties
                     if (iter >= dailyStart) running += 80;
-                    
+
                     // 2. Global Events
                     globalEvents.filter(e => e.date === dateStr).forEach(e => running += e.tokens);
-                    
+
                     // 3. On-site Events (Pending logic included)
                     onsiteEvents.forEach(oe => {
                         if (!selectedOnsite.has(oe.id)) return;
@@ -252,9 +262,9 @@
                         }
                     });
                 }
-                
+
                 timeline.push({ x: dateStr, y: running });
-                MEDALS.forEach(m => { 
+                MEDALS.forEach(m => {
                     if (achievementDates[m.id] === '-' && running >= m.threshold) {
                         achievementDates[m.id] = (dateStr <= TODAY_STR) ? "Achieved" : formatDate(dateStr);
                     }
@@ -262,7 +272,6 @@
                 iter.setDate(iter.getDate() + 1);
             }
 
-            // UI Update
             document.getElementById('total-tokens').innerText = running.toLocaleString();
             const currentMedal = MEDALS.find(m => running >= m.threshold) || { name: "NONE", class: "none" };
             const rankEl = document.getElementById('medal-rank');
@@ -275,7 +284,6 @@
                 if (achievementDates[m.id] !== '-') {
                     dateEl.innerText = achievementDates[m.id];
                     dateEl.className = `text-sm font-bold ${m.textClass} drop-shadow-sm`;
-                    
                     if (m.id === 'platinum') {
                         const skipDays = Math.floor((running - 25000) / 80);
                         remEl.innerText = `Daily Bounty Buffer: ${skipDays} days`;
@@ -298,15 +306,15 @@
             const ctx = document.getElementById('tokenChart').getContext('2d');
             if (chart) chart.destroy();
 
-            const annotations = MEDALS.map(m => ({ 
-                type: 'line', yMin: m.threshold, yMax: m.threshold, borderColor: m.color, borderWidth: 1, borderDash: [5, 5], 
-                label: { display: true, content: m.id.charAt(0).toUpperCase(), position: 'start', backgroundColor: m.color, color: '#333', font: { size: 10, weight: 'bold' } } 
+            const annotations = MEDALS.map(m => ({
+                type: 'line', yMin: m.threshold, yMax: m.threshold, borderColor: m.color, borderWidth: 1, borderDash: [5, 5],
+                label: { display: true, content: m.id.charAt(0).toUpperCase(), position: 'start', backgroundColor: m.color, color: '#333', font: { size: 10, weight: 'bold' } }
             }));
 
             if (TODAY_STR >= START_DATE_STR && TODAY_STR <= END_DATE_STR) {
-                annotations.push({ 
-                    type: 'line', xMin: TODAY_STR, xMax: TODAY_STR, borderColor: '#ef4444', borderWidth: 2, 
-                    label: { display: true, content: 'Today', backgroundColor: '#ef4444', color: '#fff', font: { size: 9 }, position: 'end' } 
+                annotations.push({
+                    type: 'line', xMin: TODAY_STR, xMax: TODAY_STR, borderColor: '#ef4444', borderWidth: 2,
+                    label: { display: true, content: 'Today', backgroundColor: '#ef4444', color: '#fff', font: { size: 9 }, position: 'end' }
                 });
             }
 
@@ -317,8 +325,8 @@
                     responsive: true, maintainAspectRatio: false,
                     scales: {
                         y: { beginAtZero: true, max: Math.max(30000, Math.ceil((max + 2000) / 5000) * 5000), grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#9ca3af', font: { size: 10, weight: 'bold' } } },
-                        x: { 
-                            type: 'category', 
+                        x: {
+                            type: 'category',
                             ticks: {
                                 maxTicksLimit: 6,
                                 maxRotation: 45,
@@ -331,17 +339,17 @@
                                 color: '#9ca3af',
                                 font: { size: 10 }
                             },
-                            grid: { 
+                            grid: {
                                 display: true,
                                 color: 'rgba(255,255,255,0.1)',
                                 drawOnChartArea: true,
                                 drawTicks: true,
-                            } 
+                            }
                         }
                     },
-                    plugins: { 
-                        legend: { display: false }, 
-                        annotation: { annotations: annotations } 
+                    plugins: {
+                        legend: { display: false },
+                        annotation: { annotations: annotations }
                     }
                 }
             });
