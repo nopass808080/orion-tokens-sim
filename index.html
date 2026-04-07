@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Orion Tokens Simulator v1.9.7</title>
+    <title>Orion Tokens Simulator v1.9.8</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@2.1.0"></script>
@@ -105,7 +105,7 @@
         const selectedOnsite = new Set();
 
         const globalEvents = [
-            { date: "2026-04-30", tokens: 3000, name: "Sakura Blossom Festival", period: "4 Apr – 30 Apr" },
+            { date: "2026-04-30", tokens: 3000, name: "Sakura Blossom Festival", period: "7 Apr – 30 Apr" },
             { date: "2026-05-11", tokens: 7500, name: "Orion Global Operation", period: "24 Apr – 11 May", isSeason: true },
             { date: "2026-05-10", tokens: 3000, name: "Global Campaign (Early May)", period: "Early-May (Est. 10 May)" },
             { date: "2026-05-30", tokens: 3000, name: "Global Campaign (Late May)", period: "Late-May (Est. 30 May)" },
@@ -195,7 +195,7 @@
             dailyDiv.innerHTML = `
                 <div class="flex flex-col">
                     <span class="text-sm font-bold text-gray-200">Daily Bounties</span>
-                    <span class="text-[10px] text-gray-400 font-medium">7 Apr – 30 Jun</span>
+                    <span class="text-[10px] text-gray-400 font-medium">8 Apr – 30 Jun</span>
                 </div>
                 <span class="font-mono text-sm text-blue-300 font-bold">+80/day</span>`;
             container.appendChild(dailyDiv);
@@ -230,7 +230,7 @@
             const achievementDates = { platinum: '-', gold: '-', silver: '-', bronze: '-' };
 
             let iter = new Date(START_DATE_STR);
-            const dailyStart = new Date("2026-04-07");
+            const dailyStart = new Date("2026-04-08");
             const endDate = new Date(END_DATE_STR);
 
             while (iter <= endDate) {
