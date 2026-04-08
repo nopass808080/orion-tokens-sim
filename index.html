@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Orion Tokens Simulator v1.9.9</title>
+    <title>Orion Tokens Simulator v2.0.1</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@2.1.0"></script>
@@ -17,7 +17,6 @@
         .text-gold { color: #ffd700; }
         .text-silver { color: #c0c0c0; }
         .text-bronze { color: #cd7f32; }
-        /* Season Point Event Highlight */
         .season-border { border-left: 4px solid #28f428 !important; }
     </style>
 </head>
@@ -46,10 +45,14 @@
             </div>
         </div>
 
+        <!-- Predicted Final Tokens Card -->
         <div class="bg-gray-900/50 p-4 rounded-lg mb-4 text-center border border-gray-700">
             <p class="text-xs text-gray-400 uppercase tracking-widest mb-1">Predicted Final Tokens</p>
             <div id="total-tokens" class="text-5xl font-black mb-3 text-white">0</div>
             <div id="medal-rank" class="inline-block px-6 py-1 rounded-full font-bold shadow-sm transition-all duration-500 uppercase">-</div>
+
+            <!-- Breakdown list -->
+            <div id="token-breakdown" class="mt-4 text-left border-t border-gray-700 pt-3 space-y-1"></div>
         </div>
 
         <div class="grid grid-cols-2 gap-2 mb-6 text-center">
@@ -96,21 +99,26 @@
 
     <script>
         const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-        const STORAGE_KEY = 'orion_simulator_v3.6_prefs';
+        const STORAGE_KEY = 'orion_simulator_v4.0_prefs';
         const START_DATE_STR = "2026-04-01";
         const END_DATE_STR = "2026-06-30";
         let TODAY_STR = new Date().toISOString().split('T')[0];
 
         let chart = null;
         const selectedOnsite = new Set();
+        // Global events: all ON by default (except Daily Bounties which is always included)
+        const selectedGlobal = new Set();
 
         const globalEvents = [
-            { date: "2026-04-30", tokens: 3000, name: "Sakura Blossom Festival", period: "7 Apr – 30 Apr" },
-            { date: "2026-05-11", tokens: 7500, name: "Orion Global Operation", period: "24 Apr – 11 May", isSeason: true },
-            { date: "2026-05-10", tokens: 3000, name: "Global Campaign (Early May)", period: "Early-May (Est. 10 May)" },
-            { date: "2026-05-30", tokens: 3000, name: "Global Campaign (Late May)", period: "Late-May (Est. 30 May)" },
-            { date: "2026-06-20", tokens: 3000, name: "Summer Solstice 2026", period: "Mid-Jun (Est. 20 Jun)" }
+            { id: 'ge1', date: "2026-04-08", tokens: 3000, name: "Sakura Blossom Festival", period: "7 Apr – 30 Apr" },
+            { id: 'ge2', date: "2026-05-11", tokens: 7500, name: "Orion Global Operation", period: "24 Apr – 11 May", isSeason: true },
+            { id: 'ge3', date: "2026-05-10", tokens: 3000, name: "Global Campaign (Early May)", period: "Early-May (Est. 10 May)" },
+            { id: 'ge4', date: "2026-05-30", tokens: 3000, name: "Global Campaign (Late May)", period: "Late-May (Est. 30 May)" },
+            { id: 'ge5', date: "2026-06-20", tokens: 3000, name: "Summer Solstice 2026", period: "Mid-Jun (Est. 20 Jun)" }
         ];
+
+        // Returns true if a global event is "past" (reward date already passed)
+        function isGlobalPast(ev) { return ev.date < TODAY_STR; }
 
         const onsiteEvents = [
             { id: 'fs4', name: "First Saturday: Apr", tokens: 2500, date: "2026-04-04", delay: 10, isSeason: true },
@@ -138,10 +146,21 @@
                 if (key.startsWith('orion_simulator_') && key !== STORAGE_KEY) localStorage.removeItem(key);
             });
 
+            // Default: future global events ON, past OFF
+            globalEvents.forEach(e => { if (!isGlobalPast(e)) selectedGlobal.add(e.id); });
+
             const saved = localStorage.getItem(STORAGE_KEY);
             if (saved) {
                 const data = JSON.parse(saved);
                 if (data.selected) data.selected.forEach(id => selectedOnsite.add(id));
+                if (data.selectedGlobal) {
+                    selectedGlobal.clear();
+                    // Respect saved state, but never allow past events to be selected
+                    data.selectedGlobal.forEach(id => {
+                        const ev = globalEvents.find(e => e.id === id);
+                        if (ev && !isGlobalPast(ev)) selectedGlobal.add(id);
+                    });
+                }
                 if (data.currentTokens) document.getElementById('input-current-tokens').value = data.currentTokens;
             }
 
@@ -162,7 +181,6 @@
                 const isRewarded = rewardDateStr < TODAY_STR;
                 const isPending = isPastEvent && !isRewarded;
 
-                // FIX 1: Season highlight only applies to non-rewarded events
                 const seasonClasses = (ev.isSeason && !isRewarded) ? 'season-border' : '';
 
                 const label = document.createElement('label');
@@ -179,7 +197,7 @@
                     </div>
                     <div class="flex items-center gap-3">
                         <span class="text-sm font-mono ${isRewarded ? 'text-gray-500' : 'text-orange-400'} font-bold">+${ev.tokens.toLocaleString()}</span>
-                        <input type="checkbox" class="w-5 h-5 accent-orange-500" onchange="toggleEvent('${ev.id}')" ${selectedOnsite.has(ev.id) ? 'checked' : ''} ${isRewarded ? 'disabled' : ''}>
+                        <input type="checkbox" class="w-5 h-5 accent-orange-500" onchange="toggleOnsiteEvent('${ev.id}')" ${selectedOnsite.has(ev.id) ? 'checked' : ''} ${isRewarded ? 'disabled' : ''}>
                     </div>`;
                 container.appendChild(label);
             });
@@ -189,45 +207,86 @@
             const container = document.getElementById('global-events');
             container.innerHTML = '';
 
-            // FIX 2: Daily Bounties uses the same card style as other Global Events
+            const tomorrow = new Date(TODAY_STR);
+            tomorrow.setDate(tomorrow.getDate() + 1);
+
+            // Daily Bounties — always on, no checkbox
             const dailyDiv = document.createElement('div');
             dailyDiv.className = 'flex justify-between items-center p-3 border rounded-lg bg-gray-700/50 border-gray-600';
             dailyDiv.innerHTML = `
                 <div class="flex flex-col">
                     <span class="text-sm font-bold text-gray-200">Daily Bounties</span>
-                    <span class="text-[10px] text-gray-400 font-medium"><del>7 Apr</del> 8 Apr – 30 Jun</span>
+                    <span class="text-[10px] text-gray-400 font-medium"><del>4/8 – ${formatDate(TODAY_STR)}</del> (実績) / ${formatDate(tomorrow.toISOString().split('T')[0])} – 6/30 (予定)</span>
                 </div>
                 <span class="font-mono text-sm text-blue-300 font-bold">+80/day</span>`;
             container.appendChild(dailyDiv);
 
             globalEvents.sort((a, b) => new Date(a.date) - new Date(b.date)).forEach(ev => {
-                const isPast = ev.date < TODAY_STR;
+                const isPast = isGlobalPast(ev);
+                const isSelected = selectedGlobal.has(ev.id);
                 const seasonClasses = (ev.isSeason && !isPast) ? 'season-border' : '';
 
-                const div = document.createElement('div');
-                div.className = `flex justify-between items-center p-3 border rounded-lg transition ${seasonClasses} ${isPast ? 'opacity-40 bg-gray-800/20 border-gray-700/30' : 'bg-gray-700/50 border-gray-600'}`;
-                div.innerHTML = `
-                    <div class="flex flex-col">
-                        <span class="text-sm font-bold text-gray-200">${ev.name}</span>
-                        <span class="text-[10px] text-gray-400 font-medium">${ev.period} ${isPast ? '(Ended)' : ''}</span>
-                    </div>
-                    <span class="font-mono text-sm ${isPast ? 'text-gray-400' : 'text-blue-300'} font-bold">+${ev.tokens.toLocaleString()}</span>`;
-                container.appendChild(div);
+                // Past: treated like on-site rewarded events — dimmed, unchecked, disabled
+                if (isPast) {
+                    const div = document.createElement('div');
+                    div.className = `flex items-center justify-between p-3 border rounded-lg bg-gray-800/40 border-gray-700 opacity-50`;
+                    div.innerHTML = `
+                        <div class="flex flex-col">
+                            <span class="text-sm font-bold text-gray-400">${ev.name}</span>
+                            <span class="text-[10px] text-gray-500 font-medium">${ev.period} <span class="text-gray-500">(Counted in Current)</span></span>
+                        </div>
+                        <div class="flex items-center gap-3">
+                            <span class="font-mono text-sm text-gray-500 font-bold">+${ev.tokens.toLocaleString()}</span>
+                            <input type="checkbox" class="w-5 h-5 accent-blue-500" disabled>
+                        </div>`;
+                    container.appendChild(div);
+                } else {
+                    const label = document.createElement('label');
+                    label.className = `flex items-center justify-between p-3 border rounded-lg transition cursor-pointer active:scale-95 ${seasonClasses} bg-gray-700/50 border-gray-600`;
+                    label.innerHTML = `
+                        <div class="flex flex-col">
+                            <span class="text-sm font-bold text-gray-200">${ev.name}</span>
+                            <span class="text-[10px] text-gray-400 font-medium">${ev.period}</span>
+                        </div>
+                        <div class="flex items-center gap-3">
+                            <span class="font-mono text-sm text-blue-300 font-bold">+${ev.tokens.toLocaleString()}</span>
+                            <input type="checkbox" class="w-5 h-5 accent-blue-500" onchange="toggleGlobalEvent('${ev.id}')" ${isSelected ? 'checked' : ''}>
+                        </div>`;
+                    container.appendChild(label);
+                }
             });
         }
 
-        function toggleEvent(id) {
+        function toggleOnsiteEvent(id) {
             if (selectedOnsite.has(id)) selectedOnsite.delete(id); else selectedOnsite.add(id);
             update();
         }
 
+        function toggleGlobalEvent(id) {
+            if (selectedGlobal.has(id)) selectedGlobal.delete(id); else selectedGlobal.add(id);
+            update();
+        }
+
+        function savePrefs(currentTokens) {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify({
+                selected: [...selectedOnsite],
+                selectedGlobal: [...selectedGlobal],
+                currentTokens
+            }));
+        }
+
         function update() {
             const currentTokens = parseInt(document.getElementById('input-current-tokens').value) || 0;
-            localStorage.setItem(STORAGE_KEY, JSON.stringify({ selected: [...selectedOnsite], currentTokens: currentTokens }));
+            savePrefs(currentTokens);
 
             let running = currentTokens;
             const timeline = [];
             const achievementDates = { platinum: '-', gold: '-', silver: '-', bronze: '-' };
+
+            // Track breakdown: sources contributing to the total
+            let dailyBountyTotal = 0;
+            const includedGlobal = [];  // { name, tokens }
+            const includedOnsite = [];  // { name, tokens }
 
             let iter = new Date(START_DATE_STR);
             const dailyStart = new Date("2026-04-08");
@@ -239,12 +298,21 @@
 
                 if (dateStr >= TODAY_STR) {
                     // 1. Daily Bounties
-                    if (iter >= dailyStart) running += 80;
+                    const tomorrow = new Date(TODAY_STR);
+                    tomorrow.setDate(tomorrow.getDate() + 1);
 
-                    // 2. Global Events
-                    globalEvents.filter(e => e.date === dateStr).forEach(e => running += e.tokens);
+                    if (iter >= dailyStart && iter >= tomorrow) {
+                        running += 80;
+                        dailyBountyTotal += 80;
+                    }
 
-                    // 3. On-site Events (Pending logic included)
+                    // 2. Global Events (only if selected; past events are never selected)
+                    globalEvents.filter(e => e.date === dateStr && selectedGlobal.has(e.id) && !isGlobalPast(e)).forEach(e => {
+                        running += e.tokens;
+                        includedGlobal.push({ name: e.name, tokens: e.tokens });
+                    });
+
+                    // 3. On-site Events
                     onsiteEvents.forEach(oe => {
                         if (!selectedOnsite.has(oe.id)) return;
 
@@ -252,13 +320,12 @@
                         const rewardDate = new Date(eventDate.getTime() + (oe.delay || 0) * 86400000);
                         const rewardDateStr = rewardDate.toISOString().split('T')[0];
 
-                        // A: At the first iteration (Today), immediately add tokens for past events that have not been delivered yet (Pending).
                         if (isFirstIteration && rewardDateStr >= TODAY_STR && oe.date < TODAY_STR) {
                             running += oe.tokens;
-                        }
-                        // B: Add tokens at the future delivery timing.
-                        else if (rewardDateStr === dateStr && oe.date >= TODAY_STR) {
+                            includedOnsite.push({ name: oe.name, tokens: oe.tokens, isPending: true });
+                        } else if (rewardDateStr === dateStr && oe.date >= TODAY_STR) {
                             running += oe.tokens;
+                            includedOnsite.push({ name: oe.name, tokens: oe.tokens, isPending: false });
                         }
                     });
                 }
@@ -277,6 +344,9 @@
             const rankEl = document.getElementById('medal-rank');
             rankEl.innerText = currentMedal.class.toUpperCase();
             rankEl.className = "inline-block px-6 py-1 rounded-full font-bold shadow-sm " + currentMedal.class;
+
+            // Render breakdown
+            renderBreakdown(currentTokens, dailyBountyTotal, includedGlobal, includedOnsite);
 
             MEDALS.forEach(m => {
                 const dateEl = document.getElementById(`date-${m.id}`);
@@ -300,6 +370,42 @@
                 }
             });
             renderChart(timeline, running);
+        }
+
+        function renderBreakdown(currentTokens, dailyBountyTotal, includedGlobal, includedOnsite) {
+            const container = document.getElementById('token-breakdown');
+            container.innerHTML = '';
+
+            const rows = [];
+
+            // Current tokens
+            rows.push({ label: 'Current Tokens', tokens: currentTokens, color: 'text-orange-300' });
+
+            // Daily Bounties
+            if (dailyBountyTotal > 0) {
+                const remainingDays = Math.round(dailyBountyTotal / 80);
+                rows.push({ label: `Daily Bounties (${remainingDays} days remaining)`, tokens: dailyBountyTotal, color: 'text-blue-300' });
+            }
+
+            // Global Events
+            includedGlobal.forEach(e => {
+                rows.push({ label: e.name, tokens: e.tokens, color: 'text-blue-300' });
+            });
+
+            // On-site Events
+            includedOnsite.forEach(e => {
+                const suffix = e.isPending ? ' [Pending]' : '';
+                rows.push({ label: e.name + suffix, tokens: e.tokens, color: 'text-orange-400' });
+            });
+
+            rows.forEach((row, i) => {
+                const div = document.createElement('div');
+                div.className = 'flex justify-between items-center py-1' + (i < rows.length - 1 ? ' border-b border-gray-700/50' : '');
+                div.innerHTML = `
+                    <span class="text-[11px] text-gray-400 leading-tight pr-2">${row.label}</span>
+                    <span class="text-[11px] font-mono font-bold ${row.color} whitespace-nowrap">${i === 0 ? '' : '+'}${row.tokens.toLocaleString()}</span>`;
+                container.appendChild(div);
+            });
         }
 
         function renderChart(timeline, max) {
@@ -339,12 +445,7 @@
                                 color: '#9ca3af',
                                 font: { size: 10 }
                             },
-                            grid: {
-                                display: true,
-                                color: 'rgba(255,255,255,0.1)',
-                                drawOnChartArea: true,
-                                drawTicks: true,
-                            }
+                            grid: { display: true, color: 'rgba(255,255,255,0.1)', drawOnChartArea: true, drawTicks: true }
                         }
                     },
                     plugins: {
